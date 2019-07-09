@@ -2,6 +2,6 @@
 
 EOSIO_DISPATCH_VAPAEE (
     goldencenser,
-    (init)(reset)(addquote)(removequote)(modifyquote),
+    (init)(newowner)(reset)(addquote)(removequote)(modifyquote),
     (htransfer)
 )

@@ -81,9 +81,19 @@ CONTRACT goldencenser : public eosio::contract {
             PRINT("\nACTION goldencenser.init()...\n");
         }
 
+        ACTION newowner(name old_owner, name new_owner) {
+            PRINT("\nACTION goldencenser.newowner()\n");
+
+            require_auth(old_owner);
+            uint32_t count = global.get().count;
+            global.set(globals{count, new_owner}, get_self());
+
+            PRINT("\nACTION goldencenser.newowner()...\n");
+        }
+
         ACTION reset(int max) {
             PRINT("\nACTION goldencenser.init()\n");
-            // check_signature();
+            check_signature();
             int deleted = 0;
 
             quotes table(get_self(), get_self().value);
@@ -104,6 +114,10 @@ CONTRACT goldencenser : public eosio::contract {
 
         ACTION addquote(string quote) {
             PRINT("\nACTION goldencenser.addquote()\n");
+
+            // theck quote length
+            eosio_assert(quote.size() < 256, "quote is too long. Max characters allowed is 256");
+
             quotes table(get_self(), get_self().value);
             table.emplace(get_self(), [&](auto & a) {
                 a.id = table.available_primary_key();
@@ -141,9 +155,14 @@ CONTRACT goldencenser : public eosio::contract {
 
         ACTION modifyquote(uint64_t id, string quote) {
             PRINT("\nACTION goldencenser.modifyquote()\n");
+
+            // theck quote length
+            eosio_assert(quote.size() < 256, "quote is too long. Max characters allowed is 256");
+
             quotes table(get_self(), get_self().value);
-            auto entry = table.get(id, "Quote not found");
-            table.modify(entry, get_self(), [&](auto & a) {
+            auto entry = table.find(id);
+            eosio_assert(entry != table.end(), "Quote not found");
+            table.modify(*entry, get_self(), [&](auto & a) {
                 a.quote = quote;
             });
             

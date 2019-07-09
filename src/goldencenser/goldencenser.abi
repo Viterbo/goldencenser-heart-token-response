@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Jul  8 15:36:36 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Tue Jul  9 13:50:05 2019",
     "version": "eosio::abi/1.1",
     "structs": [
         {
@@ -33,6 +33,20 @@
                 {
                     "name": "quote",
                     "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "newowner",
+            "base": "",
+            "fields": [
+                {
+                    "name": "old_owner",
+                    "type": "name"
+                },
+                {
+                    "name": "new_owner",
+                    "type": "name"
                 }
             ]
         },
@@ -86,6 +100,11 @@
         {
             "name": "modifyquote",
             "type": "modifyquote",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "newowner",
+            "type": "newowner",
             "ricardian_contract": ""
         },
         {
