@@ -1,6 +1,7 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Tue Jul  9 13:50:05 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
     "version": "eosio::abi/1.1",
+    "types": [],
     "structs": [
         {
             "name": "addquote",
@@ -85,7 +86,6 @@
             ]
         }
     ],
-    "types": [],
     "actions": [
         {
             "name": "addquote",
@@ -128,6 +128,5 @@
         }
     ],
     "ricardian_clauses": [],
-    "variants": [],
-    "abi_extensions": []
+    "variants": []
 }

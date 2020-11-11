@@ -1,10 +1,15 @@
 #pragma once
 
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/symbol.hpp>
-#include <eosiolib/asset.hpp>
-#include <eosiolib/print.hpp>
-#include <eosiolib/singleton.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/system.hpp>
+#include <eosio/symbol.hpp>
+#include <eosio/asset.hpp>
+#include <eosio/singleton.hpp>
+#include <eosio/print.hpp>
+#include <eosio/crypto.hpp>
+
+#include <ctype.h>
+#include <stdlib.h>
 
 #include "vapaee.dispatcher.hpp"
 
@@ -51,12 +56,31 @@ CONTRACT goldencenser : public eosio::contract {
 
         // https://eosio.stackexchange.com/a/1657/2452
         uint32_t range(uint64_t seed, uint32_t to) {
-            capi_checksum256 result;
-            sha256((char *)&seed, sizeof(seed), &result);
-            seed = result.hash[1];
-            seed <<= 32;
-            seed |= result.hash[0];
-            return (uint32_t)(seed % to);
+            PRINT("goldencenser:range()\n");
+            PRINT(" seed: ", std::to_string((long) seed), "\n");
+            PRINT(" to: ", std::to_string((int) to), "\n");
+
+            checksum256 hash = sha256((char *)&seed, sizeof(seed));
+
+            
+
+            
+
+            uint32_t aux;
+            memcpy(&aux, &hash, sizeof(aux));
+            PRINT(" aux: ", std::to_string((int) aux), "\n");
+
+
+            // seed = result.hash[1];
+            // seed <<= 32;
+            // seed |= result.hash[0];
+            uint32_t result = (uint32_t)(aux % to);
+            PRINT("goldencenser:range() -> ", std::to_string((int) result), "\n");
+            return result;
+        }
+
+        static inline checksum256 hash(std::string s) {
+            return sha256(const_cast<char*>(s.c_str()), s.size());
         }
 
         void check_signature() {
@@ -72,7 +96,7 @@ CONTRACT goldencenser : public eosio::contract {
 
             // check list is empty
             quotes table(get_self(), get_self().value);
-            eosio_assert(table.available_primary_key() == 0, "The quote list is not empty. Previous owner must execute 'reset' action to clean the list.");
+            check(table.available_primary_key() == 0, "The quote list is not empty. Previous owner must execute 'reset' action to clean the list.");
 
             require_auth(owner);
             global.set(globals{0, owner}, get_self());
@@ -105,7 +129,7 @@ CONTRACT goldencenser : public eosio::contract {
 
             uint32_t count = global.get().count;
             name owner = global.get().owner;
-            eosio_assert(count-deleted >= 0, "Can't delete more quotes than the list contains");
+            check(count-deleted >= 0, "Can't delete more quotes than the list contains");
             global.set(globals{count-deleted, owner}, get_self());
 
             PRINT(" global.get().count: ", std::to_string((int) global.get().count), "\n");
@@ -116,7 +140,7 @@ CONTRACT goldencenser : public eosio::contract {
             PRINT("\nACTION goldencenser.addquote()\n");
 
             // theck quote length
-            eosio_assert(quote.size() < 256, "quote is too long. Max characters allowed is 256");
+            check(quote.size() < 256, "quote is too long. Max characters allowed is 256");
 
             quotes table(get_self(), get_self().value);
             table.emplace(get_self(), [&](auto & a) {
@@ -146,7 +170,7 @@ CONTRACT goldencenser : public eosio::contract {
             require_auth(owner);
             
             uint32_t count = global.get().count;
-            eosio_assert(count > 0, "count is zero (this is inconsistent)");
+            check(count > 0, "count is zero (this is inconsistent)");
             global.set(globals{count-1, owner}, get_self());
             PRINT(" global.get().count: ", std::to_string((int) global.get().count), "\n");
 
@@ -157,11 +181,11 @@ CONTRACT goldencenser : public eosio::contract {
             PRINT("\nACTION goldencenser.modifyquote()\n");
 
             // theck quote length
-            eosio_assert(quote.size() < 256, "quote is too long. Max characters allowed is 256");
+            check(quote.size() < 256, "quote is too long. Max characters allowed is 256");
 
             quotes table(get_self(), get_self().value);
             auto entry = table.find(id);
-            eosio_assert(entry != table.end(), "Quote not found");
+            check(entry != table.end(), "Quote not found");
             table.modify(*entry, get_self(), [&](auto & a) {
                 a.quote = quote;
             });
@@ -178,13 +202,16 @@ CONTRACT goldencenser : public eosio::contract {
             
             uint32_t count = global.get().count;
             PRINT(" global.get().count: ", std::to_string((int) global.get().count), "\n");
-            eosio_assert(count > 0, "There're no quotes loaded yet");
+            check(count > 0, "There're no quotes loaded yet");
 
-            uint64_t seed = current_time() + for_whom.value;
+            uint64_t seed = current_time_point().time_since_epoch().count() + for_whom.value;
+            PRINT(" seed: ", std::to_string((long) seed), "\n");
+            PRINT(" for_whom.value: ", std::to_string((long) for_whom.value), "\n");
+            PRINT(" current_time_point().time_since_epoch().count(): ", std::to_string((long) current_time_point().time_since_epoch().count()), "\n");
             uint32_t skip = range(seed, (int)count);
             
             auto ptr = table.begin();
-            eosio_assert(ptr != table.end(), "There're no quotes loaded yet");
+            check(ptr != table.end(), "There're no quotes loaded yet");
 
             for (int i=0; i<skip; i++) {
                 ptr++;
@@ -208,14 +235,11 @@ CONTRACT goldencenser : public eosio::contract {
 
             // skip handling outcoming transfers of another token
             if (quantity.symbol.code() != symbol_code("HEART")) return;
+            if (get_first_receiver() != name("revelation21")) return;        
 
             string message;
 
-            if (memo == string("")) {
-                message = pick_quote(from);
-            } else if (memo == string("info")) {
-                message = string("current owner is '" + global.get().owner.to_string() + "' with " + std::to_string((int) global.get().count) + " quotes loaded.");
-            }
+            message = pick_quote(from);
 
             action(
                 permission_level{get_self(), name("active")},
